@@ -169,27 +169,7 @@ def follow_tag(name):
     follow = json.loads(response.text)
     return follow
 
-# //unfollow a user
-# app.post("/api/v1/accounts/:id/unfollow", async (req, res) => {
-#     try {
-#         const response = await axios.post(`https://${req.body.instance}/api/v1/accounts/${req.params.id}/unfollow`, {}, {
-#             headers: {
-#                 Authorization: `Bearer ${req.body.token}`,
-#             },
-#         });
-#         res.status(200).json(response.data);
-
-# //unfollow a tag
-# app.post("/api/v1/tags/:name/unfollow", async (req, res) => {
-#     try {
-#         const response = await axios.post(`https://${req.body.instance}/api/v1/tags/${req.params.name}/unfollow`, {}, {
-#             headers: {
-#                 Authorization: `Bearer ${req.body.token}`,
-#             },
-#         });
-#         res.status(200).json(response.data);
-
-#follow a user
+#unfollow a user
 @app.post("/api/v1/accounts/<id>/unfollow")
 @cross_origin()
 def unfollow_user(id):
@@ -200,7 +180,7 @@ def unfollow_user(id):
     follow = json.loads(response.text)
     return follow
 
-#follow a tag
+#unfollow a tag
 @app.post("/api/v1/tags/<name>/unfollow")
 @cross_origin()
 def unfollow_tag(name):
@@ -228,10 +208,75 @@ def post_status():
     return post_status
 
 #edit a status
+@app.put("/api/v1/statuses/<id>")
+@cross_origin()
+def edit_status(id):
+    body = {
+        'status': request.json['text']
+    }
+    headers = {
+        "Authorization": f"Bearer {request.json['token']}"
+    }
+    response = requests.put(f"https://{request.json['instance']}/api/v1/statuses/{id}", json=body, headers=headers)
+    edit_status = json.loads(response.text)
+    return edit_status
+
 #favorite or unfavourite a status
+@app.post("/api/v1/statuses/<id>/favourite")
+@cross_origin()
+def favourite(id):
+    headers = {
+        "Authorization": f"Bearer {request.json['token']}"
+    }
+    response = requests.post(f"https://{request.json['instance']}/api/v1/statuses/{id}/{request.json['prefix']}favourite", headers=headers)
+    favourite = json.loads(response.text)
+    return favourite
+
 #boost or unboost a status
+@app.post("/api/v1/statuses/<id>/boost")
+@cross_origin()
+def boost(id):
+    headers = {
+        "Authorization": f"Bearer {request.json['token']}"
+    }
+    response = requests.post(f"https://{request.json['instance']}/api/v1/statuses/{id}/{request.json['prefix']}reblog", headers=headers)
+    boost = json.loads(response.text)
+    return boost
+
 #fetch a status
+@app.get("/api/v1/statuses/<id>")
+@cross_origin()
+def get_status(id):
+    headers = {
+        "Authorization": f"Bearer {request.args['token']}"
+    }
+    res1 = requests.get(f"https://{request.args['instance']}/api/v1/statuses/{id}", headers=headers)
+    status = json.loads(res1.text)
+    res2 = requests.get(f"https://{request.args['instance']}/api/v1/statuses/{id}/context", headers=headers)
+    replies = json.loads(res2.text)
+    data = {
+        'status': status,
+        'replies': replies['descendants']
+    }
+    return data
+
 #fetch tag timeline
+@app.get("/api/v1/timelines/tag/<name>")
+@cross_origin()
+def get_tag_timeline(name):
+    headers = {
+        "Authorization": f"Bearer {request.args['token']}"
+    }
+    params = {
+        'max_id': request.args['max_id']
+    }
+    response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/tag/{name}?limit=30", params=params, headers=headers)
+    tag_timeline = json.loads(response.text)
+    data = {
+        'data': tag_timeline,
+        'max_id': tag_timeline[-1]['id']
+    }
+    return data
 
 #fetch home timeline
 @app.get("/api/v1/timelines/home")
