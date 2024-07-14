@@ -2,15 +2,20 @@ from flask import Flask, request, jsonify, Response
 import requests
 from flask_cors import CORS, cross_origin
 import json
-from transformers import pipeline
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import torch
 
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-# # Create the sentiment analysis pipeline
-sentiment_task = pipeline("sentiment-analysis", model=model_name, tokenizer=model_name, max_length=512, truncation=True)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+quantized_model = torch.quantization.quantize_dynamic(
+    model, {torch.nn.Linear}, dtype=torch.qint8
+)
 
 label_to_value = {
     'negative': -1,
@@ -26,10 +31,17 @@ def sentiment_anal(toots):
 
     # print(results)
     """## Predicting using RoBERTa model"""
+    def predict(model, text):
+        inputs = tokenizer(text, return_tensors="pt")
+        with torch.no_grad():
+            outputs = model(**inputs)
+        logits = outputs.logits
+        prediction = torch.argmax(logits, dim=-1).item()
+        return prediction
 
     def get_sentiment(text):
-        result = sentiment_task(text)
-        label = result[0]['label']
+        prediction = predict(quantized_model, text)
+        label = model.config.id2label[prediction]
         return label_to_value[label]
 
     final_list = []
@@ -210,9 +222,7 @@ def search():
             'statusText': response.reason,
         }, response.status_code)
         else:
-            #sent = sentiment_anal(results['statuses'])
-            sent = results['statuses']
-            #print(results)
+            sent = sentiment_anal(results['statuses'])
             data = {
                 'accounts': results['accounts'],
                 'statuses': sent,
@@ -462,7 +472,6 @@ def get_status(id):
             'statusText': res1.reason,
         }, res1.status_code)
         else:
-            #sent = sentiment_anal(timeline)
             data = {
                 'status': status,
                 'replies': replies['descendants']
@@ -496,9 +505,9 @@ def get_tag_timeline(name):
             'statusText': response.reason,
         }, response.status_code)
         else:
-            #sent = sentiment_anal(tag_timeline)
+            sent = sentiment_anal(tag_timeline)
             data = {
-                'data': tag_timeline,
+                'data': sent,
                 'max_id': tag_timeline[-1]['id']
             }
             return data
@@ -531,9 +540,9 @@ def get_timeline():
             'statusText': response.reason,
         }, response.status_code)
         else:
-            #sent = sentiment_anal(timeline)
+            sent = sentiment_anal(timeline)
             data = {
-                'data': timeline,
+                'data': sent,
                 'max_id': timeline[-1]['id']
             }
             return data
