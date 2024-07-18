@@ -32,7 +32,7 @@ def sentiment_anal(toots):
     # print(results)
     """## Predicting using RoBERTa model"""
     def predict(model, text):
-        inputs = tokenizer(text, return_tensors="pt")
+        inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
         with torch.no_grad():
             outputs = model(**inputs)
         logits = outputs.logits
@@ -524,7 +524,7 @@ def get_timeline():
         params = {
             'max_id': request.args['max_id']
         }
-        response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/home?limit=30", headers=headers, params=params)
+        response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/home?limit=10", headers=headers, params=params)
         timeline = json.loads(response.text)
     except requests.exceptions.ConnectionError as e:
         return {
