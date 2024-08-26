@@ -9,27 +9,29 @@ app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-local_dir = "./sentiment"
-
-model.save_pretrained(local_dir)
-tokenizer.save_pretrained(local_dir)
-
-print(f"Model and tokenizer saved to {local_dir}")
+'''Save the model locally on your device'''
 # from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+# model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+
+# model = AutoModelForSequenceClassification.from_pretrained(model_name)
+# tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 # local_dir = "./sentiment"
 
-# model = AutoModelForSequenceClassification.from_pretrained(local_dir)
-# tokenizer = AutoTokenizer.from_pretrained(local_dir)
+# model.save_pretrained(local_dir)
+# tokenizer.save_pretrained(local_dir)
 
-# print("Model and tokenizer loaded from the local directory")
+# print(f"Model and tokenizer saved to {local_dir}")
+
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+local_dir = "./sentiment"
+
+model = AutoModelForSequenceClassification.from_pretrained(local_dir)
+tokenizer = AutoTokenizer.from_pretrained(local_dir)
+
+print("Model and tokenizer loaded from the local directory")
 
 quantized_model = torch.quantization.quantize_dynamic(
     model, {torch.nn.Linear}, dtype=torch.qint8
