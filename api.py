@@ -72,6 +72,13 @@ def sentiment_anal(toots):
             final_list.append(row)
     return final_list
 
+@app.get("/api/v1/health")
+@cross_origin()
+def health():
+    return {
+        'status': 'ok'
+    }
+
 #register app
 @app.post("/api/v1/register")
 @cross_origin()
@@ -542,7 +549,7 @@ def get_timeline():
             "Authorization": f"Bearer {request.args['token']}"
         }
         params = {
-            'max_id': request.args['max_id']
+            'max_id': request.args['max_id'] #posts[len(posts) - 1].id
         }
         response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/home?limit=8", headers=headers, params=params)
         timeline = json.loads(response.text)
@@ -568,4 +575,4 @@ def get_timeline():
             return data
 
 if __name__ == '__main__':
-    app.run(debug=True, port=3000)
+    app.run(debug=True, port=5000)
