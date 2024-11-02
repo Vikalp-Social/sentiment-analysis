@@ -4,27 +4,32 @@ from flask_cors import CORS, cross_origin
 import json
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
+import os
 
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 '''Save the model locally on your device'''
-# from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-# model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+def check_folder_exists(folder_path):
+    return os.path.isdir(folder_path)
 
-# model = AutoModelForSequenceClassification.from_pretrained(model_name)
-# tokenizer = AutoTokenizer.from_pretrained(model_name)
+# Example usage
+folder = 'sentiment'
+if not check_folder_exists(folder):
 
-# local_dir = "./sentiment"
+    model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
 
-# model.save_pretrained(local_dir)
-# tokenizer.save_pretrained(local_dir)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-# print(f"Model and tokenizer saved to {local_dir}")
+    local_dir = "./sentiment"
 
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    model.save_pretrained(local_dir)
+    tokenizer.save_pretrained(local_dir)
+
+    print(f"Model and tokenizer saved to {local_dir}")
 
 local_dir = "./sentiment"
 
