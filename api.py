@@ -521,7 +521,7 @@ def get_tag_timeline(name):
         params = {
             'max_id': request.args['max_id']
         }
-        response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/tag/{name}?limit=30", params=params, headers=headers)
+        response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/tag/{name}?limit=50", params=params, headers=headers)
         tag_timeline = json.loads(response.text)
     except requests.exceptions.ConnectionError as e:
         return {
@@ -556,7 +556,7 @@ def get_timeline():
         params = {
             'max_id': request.args['max_id'] #posts[len(posts) - 1].id
         }
-        response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/home?limit=8", headers=headers, params=params)
+        response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/home?limit=50", headers=headers, params=params)
         timeline = json.loads(response.text)
     except requests.exceptions.ConnectionError as e:
         return {
