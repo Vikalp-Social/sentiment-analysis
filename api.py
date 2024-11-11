@@ -9,6 +9,7 @@ import os
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
+domain = "https://vikalp.social"
 
 '''Save the model locally on your device'''
 
@@ -91,9 +92,9 @@ def register_app():
     try:
         body = {
             'client_name': "Vikalp",
-            'redirect_uris': "http://localhost:3001/auth",
+            'redirect_uris': f"{domain}/auth/",
             'scopes': "read write push",
-            'website': "http://localhost:3001"
+            'website': f"{domain}"
         }
         response = requests.post(f"https://{request.json['instance']}/api/v1/apps", json=body)
         register_app = json.loads(response.text)
@@ -122,7 +123,7 @@ def get_auth_token():
         body = {
             'client_id': request.json['id'],
             'client_secret': request.json['secret'],
-            'redirect_uri': "http://localhost:3001/auth",
+            'redirect_uri': f"{domain}/auth/",
             'grant_type': "authorization_code",
             'code': request.json['code'],
             'scope': "read write push",
@@ -227,6 +228,58 @@ def edit_profile():
         else:
             return edit_profile
     
+#fetch user followers
+@app.get("/api/v1/accounts/<id>/followers")
+@cross_origin()
+def get_followers(id):
+    try:
+        headers = {
+            "Authorization": f"Bearer {request.args['token']}"
+        }
+        response = requests.get(f"https://{request.args['instance']}/api/v1/accounts/{id}/followers", headers=headers)
+        followers = json.loads(response.text)
+    except requests.exceptions.ConnectionError as e:
+        return {
+                'error': "Can't Establish a connection to the server",
+                'status': 502,
+                'statusText': "Bad Gateway",
+            }
+    else:
+        if response.status_code >= 400:
+            return ({
+            'error': followers['error'],
+            'status': response.status_code,
+            'statusText': response.reason,
+        }, response.status_code)
+        else:
+            return followers
+        
+#fetch user following
+@app.get("/api/v1/accounts/<id>/following")
+@cross_origin()
+def get_following(id):
+    try:
+        headers = {
+            "Authorization": f"Bearer {request.args['token']}"
+        }
+        response = requests.get(f"https://{request.args['instance']}/api/v1/accounts/{id}/following", headers=headers)
+        following = json.loads(response.text)
+    except requests.exceptions.ConnectionError as e:
+        return {
+                'error': "Can't Establish a connection to the server",
+                'status': 502,
+                'statusText': "Bad Gateway",
+            }
+    else:
+        if response.status_code >= 400:
+            return ({
+            'error': following['error'],
+            'status': response.status_code,
+            'statusText': response.reason,
+        }, response.status_code)
+        else:
+            return following
+
 #search
 @app.get("/api/v1/search")
 @cross_origin()
@@ -313,6 +366,32 @@ def follow_tag(name):
         }, response.status_code)
         else:
             return follow
+        
+#get following tags
+@app.get("/api/v1/tags/following")
+@cross_origin()
+def get_following_tags():
+    try:
+        headers = {
+            "Authorization": f"Bearer {request.args['token']}"
+        }
+        response = requests.get(f"https://{request.args['instance']}/api/v1/followed_tags", headers=headers)
+        tags = json.loads(response.text)
+    except requests.exceptions.ConnectionError as e:
+        return {
+                'error': "Can't Establish a connection to the server",
+                'status': 502,
+                'statusText': "Bad Gateway",
+            }
+    else:
+        if response.status_code >= 400:
+            return ({
+            'error': tags['error'],
+            'status': response.status_code,
+            'statusText': response.reason,
+        }, response.status_code)
+        else:
+            return tags
 
 #unfollow a user
 @app.post("/api/v1/accounts/<id>/unfollow")
