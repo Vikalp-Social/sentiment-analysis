@@ -643,7 +643,7 @@ def get_timeline():
         params = {
             'max_id': request.args['max_id'] #posts[len(posts) - 1].id
         }
-        response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/home?limit=50", headers=headers, params=params)
+        response = requests.get(f"https://{request.args['instance']}/api/v1/timelines/home?limit=20", headers=headers, params=params)
         timeline = json.loads(response.text)
     except requests.exceptions.ConnectionError as e:
         return {
