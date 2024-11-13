@@ -252,7 +252,11 @@ def get_followers(id):
             'statusText': response.reason,
         }, response.status_code)
         else:
-            return followers
+            data = {
+                'accounts': followers,
+                'max_id': followers[-1]['id'],
+            }
+            return data
         
 #fetch user following
 @app.get("/api/v1/accounts/<id>/following")
@@ -278,7 +282,11 @@ def get_following(id):
             'statusText': response.reason,
         }, response.status_code)
         else:
-            return following
+            data = {
+                'accounts': following,
+                'max_id': following[-1]['id'],
+            }
+            return data
 
 #search
 @app.get("/api/v1/search")
