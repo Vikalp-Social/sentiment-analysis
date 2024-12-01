@@ -1,82 +1,95 @@
 from flask import Flask, request, jsonify, Response
-import requests
 from flask_cors import CORS, cross_origin
+import requests
 import json
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import torch
 import os
+
+# Sentiment Analyzer Dependencies
+import time
+import torch
+from bs4 import BeautifulSoup
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 domain = "https://vikalp.social"
 
-'''Save the model locally on your device'''
-
+# Check if Sentiment Analyzer model is already downloaded
+folder = 'sentimentAnalyzerFolder'
 def check_folder_exists(folder_path):
     return os.path.isdir(folder_path)
 
-# Example usage
-folder = 'sentiment'
 if not check_folder_exists(folder):
+    # DistilBERT Model Parameters
+    modelName = "distilbert-base-uncased-finetuned-sst-2-english"
+    model = DistilBertForSequenceClassification.from_pretrained(modelName)
+    tokenizer = DistilBertTokenizer.from_pretrained(modelName)
 
-    model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+    # Set model to evaluation mode
+    model.eval()
 
-    model = AutoModelForSequenceClassification.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    # Save Pre-trained models so that it is not downloaded repeatedly
+    localDir = "./sentimentAnalyzerFolder"
+    model.save_pretrained(localDir)
+    tokenizer.save_pretrained(localDir)
+    print(f"Model and tokenizer saved to {localDir}")
 
-    local_dir = "./sentiment"
-
-    model.save_pretrained(local_dir)
-    tokenizer.save_pretrained(local_dir)
-
-    print(f"Model and tokenizer saved to {local_dir}")
-
-local_dir = "./sentiment"
-
-model = AutoModelForSequenceClassification.from_pretrained(local_dir)
-tokenizer = AutoTokenizer.from_pretrained(local_dir)
-
+# Model Parameters
+localDir = "./sentimentAnalyzerFolder"
+model = DistilBertForSequenceClassification.from_pretrained(localDir)
+tokenizer = DistilBertTokenizer.from_pretrained(localDir)
+model.eval()
+torch.backends.quantized.engine = 'qnnpack'
 print("Model and tokenizer loaded from the local directory")
 
-quantized_model = torch.quantization.quantize_dynamic(
-    model, {torch.nn.Linear}, dtype=torch.qint8
-)
-
+# Encode Sentiment Label to value
 label_to_value = {
-    'negative': -1,
-    'neutral': 0,
-    'positive': 1
+    'NEGATIVE': -1,
+    'POSITIVE': 1
 }
 
-def sentiment_anal(toots):
+# Analyze Sentiment of Posts
+def analyzeSentiment(toots):
     results = []
     for t in toots:
         if t.get('language', None) == 'en' or (t.get('reblog', {}) and t.get('reblog', {}).get('language', None) == 'en'):
             results.append(t)
 
-    # print(results)
-    """## Predicting using RoBERTa model"""
-    def predict(model, text):
+    def getProbability(model, text):
         inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
         with torch.no_grad():
             outputs = model(**inputs)
         logits = outputs.logits
-        prediction = torch.argmax(logits, dim=-1).item()
-        return prediction
+        probabilities = torch.nn.functional.softmax(logits, dim=-1)
+        return probabilities
 
-    def get_sentiment(text):
-        prediction = predict(quantized_model, text)
+    def getSentiment(text):
+        # Process HTML Text to obtain Plain Text
+        soup = BeautifulSoup(text, "html.parser")
+        plain_text = soup.get_text()
+
+        # Analyze Sentiment
+        probabilities = getProbability(model, plain_text)
+        prediction = torch.argmax(probabilities, dim=-1).item()
         label = model.config.id2label[prediction]
         return label_to_value[label]
 
-    final_list = []
+    # Get list of positive and negative posts
+    positivePosts = []
+    negativePosts = []
     for row in results:
-        if row['content'] and get_sentiment(row['content']) == 1:
-            final_list.append(row)
-        elif 'reblog' in row and row['reblog'] and get_sentiment(row['reblog']['content']) == 1:
-            final_list.append(row)
-    return final_list
+        if row['content'] and getSentiment(row['content']) == 1:
+            positivePosts.append(row)
+        elif row['content'] and getSentiment(row['content']) == -1:
+            negativePosts.append(row)
+        elif 'reblog' in row and row['reblog'] and getSentiment(row['reblog']['content']) == 1:
+            positivePosts.append(row)
+        elif 'reblog' in row and row['reblog'] and getSentiment(row['reblog']['content']) == -1:
+            negativePosts.append(row)
+
+    # Return positive posts
+    return positivePosts
 
 @app.get("/api/v1/health")
 @cross_origin()
@@ -315,7 +328,7 @@ def search():
             'statusText': response.reason,
         }, response.status_code)
         else:
-            sent = sentiment_anal(results['statuses'])
+            sent = analyzeSentiment(results['statuses'])
             data = {
                 'accounts': results['accounts'],
                 'statuses': sent,
@@ -624,7 +637,7 @@ def get_tag_timeline(name):
             'statusText': response.reason,
         }, response.status_code)
         else:
-            sent = sentiment_anal(tag_timeline)
+            sent = analyzeSentiment(tag_timeline)
             data = {
                 'data': sent,
                 'max_id': tag_timeline[-1]['id']
@@ -659,7 +672,7 @@ def get_timeline():
             'statusText': response.reason,
         }, response.status_code)
         else:
-            sent = sentiment_anal(timeline)
+            sent = analyzeSentiment(timeline)
             data = {
                 'data': sent,
                 'max_id': timeline[-1]['id']
