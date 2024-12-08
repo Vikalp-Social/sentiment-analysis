@@ -6,7 +6,7 @@ RUN pip3 install --upgrade pip
 
 RUN pip3 install -r /requirements.txt
 
-COPY . /app
+COPY ./positive_recommender /app
 
 WORKDIR /app
 
