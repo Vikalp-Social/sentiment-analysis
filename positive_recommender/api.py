@@ -10,8 +10,6 @@ cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['DOMAIN'] = "http://localhost:3000"
 
-app.register_blueprint(viaklp_bp)
-
 #search
 @app.get("/api/v1/search")
 @cross_origin()
@@ -115,6 +113,8 @@ def get_timeline():
                 'max_id': timeline[-1]['id']
             }
             return data
+        
+app.register_blueprint(viaklp_bp)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
