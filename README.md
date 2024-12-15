@@ -1,3 +1,7 @@
+positive_recommender is the flask server and the positive recommender system
+sentiment directory is the virtual env
+
+### Need to update the details below
 
 Model Documentation
 
