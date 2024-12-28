@@ -8,7 +8,7 @@ from sentiment_analysis import analyzeSentiment
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['DOMAIN'] = "http://localhost:3000"
+app.config['DOMAIN'] = "https://srg.social"
 
 #search
 @app.get("/api/v1/search")
