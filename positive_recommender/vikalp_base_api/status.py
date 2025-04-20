@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify, make_response
 from flask_cors import CORS, cross_origin
 import json
 import requests
@@ -10,153 +10,235 @@ status_bp = Blueprint('status', __name__)
 #post a status
 # POST
 @status_bp.route("/api/v1/statuses", methods=['POST'])
-@cross_origin()
+@cross_origin(origin="http://localhost:3001", supports_credentials=True)
 
 def post_status():
     try:
+        access_token = request.cookies.get('access_token')
+        if not access_token:
+            return jsonify({
+                'error': 'Unauthorized',
+                'status': 401,
+                'statusText': 'No access token found'
+            }), 401
+
         body = {
             'status': request.json['message'],
             'media_ids': request.json['media_ids'],
             'in_reply_to_id': request.json['reply_id'],
         }
         headers = {
-            "Authorization": f"Bearer {request.json['token']}"
+            "Authorization": f"Bearer {access_token}"
         }
-        response = requests.post(f"https://{request.json['instance']}/api/v1/statuses", headers=headers, json=body)
-        post_status = json.loads(response.text)
-    except requests.exceptions.ConnectionError as e:
-        return {
-                'error': "Can't Establish a connection to the server",
-                'status': 502,
-                'statusText': "Bad Gateway",
-            }
-    else:
+        response = requests.post(
+            f"https://{request.json['instance']}/api/v1/statuses",
+            headers=headers,
+            json=body
+        )
+        post_status = response.json()
+
         if response.status_code >= 400:
-            return ({
-            'error': post_status['error'],
-            'status': response.status_code,
-            'statusText': response.reason,
-        }, response.status_code)
-        else:
-            return post_status
+            return jsonify({
+                'error': post_status.get('error'),
+                'status': response.status_code,
+                'statusText': response.reason
+            }), response.status_code
+
+        return jsonify(post_status)
+
+    except requests.exceptions.ConnectionError as e:
+        return jsonify({
+            'error': "Can't Establish a connection to the server",
+            'status': 502,
+            'statusText': "Bad Gateway"
+        }), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 #edit a status
 # PUT
 @status_bp.route("/api/v1/statuses/<id>", methods=['PUT'])
-@cross_origin()
+@cross_origin(origin="http://localhost:3001", supports_credentials=True)
 
 def edit_status(id):
     try:
+        access_token = request.cookies.get('access_token')
+        if not access_token:
+            return jsonify({
+                'error': 'Unauthorized',
+                'status': 401,
+                'statusText': 'No access token found'
+            }), 401
+
         body = {
             'status': request.json['text']
         }
         headers = {
-            "Authorization": f"Bearer {request.json['token']}"
+            "Authorization": f"Bearer {access_token}"
         }
-        response = requests.put(f"https://{request.json['instance']}/api/v1/statuses/{id}", json=body, headers=headers)
-        edit_status = json.loads(response.text)
-    except requests.exceptions.ConnectionError as e:
-        return {
-                'error': "Can't Establish a connection to the server",
-                'status': 502,
-                'statusText': "Bad Gateway",
-            }
-    else:
+        response = requests.put(
+            f"https://{request.json['instance']}/api/v1/statuses/{id}",
+            json=body,
+            headers=headers
+        )
+        edit_status = response.json()
+
         if response.status_code >= 400:
-            return ({
-            'error': edit_status['error'],
-            'status': response.status_code,
-            'statusText': response.reason,
-        }, response.status_code)
-        else:
-            return edit_status
+            return jsonify({
+                'error': edit_status.get('error'),
+                'status': response.status_code,
+                'statusText': response.reason
+            }), response.status_code
+
+        return jsonify(edit_status)
+
+    except requests.exceptions.ConnectionError as e:
+        return jsonify({
+            'error': "Can't Establish a connection to the server",
+            'status': 502,
+            'statusText': "Bad Gateway"
+        }), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 #favorite or unfavourite a status
 # POST
 @status_bp.route("/api/v1/statuses/<id>/favourite", methods=['POST'])
-@cross_origin()
+@cross_origin(origin="http://localhost:3001", supports_credentials=True)
 
 def favourite(id):
     try:
+        access_token = request.cookies.get('access_token')
+        if not access_token:
+            return jsonify({
+                'error': 'Unauthorized',
+                'status': 401,
+                'statusText': 'No access token found'
+            }), 401
+
         headers = {
-            "Authorization": f"Bearer {request.json['token']}"
+            "Authorization": f"Bearer {access_token}"
         }
-        response = requests.post(f"https://{request.json['instance']}/api/v1/statuses/{id}/{request.json['prefix']}favourite", headers=headers)
-        favourite = json.loads(response.text)
-    except requests.exceptions.ConnectionError as e:
-        return {
-                'error': "Can't Establish a connection to the server",
-                'status': 502,
-                'statusText': "Bad Gateway",
-            }
-    else:
+        response = requests.post(
+            f"https://{request.json['instance']}/api/v1/statuses/{id}/{request.json['prefix']}favourite",
+            headers=headers
+        )
+        favourite = response.json()
+
         if response.status_code >= 400:
-            return ({
-            'error': favourite['error'],
-            'status': response.status_code,
-            'statusText': response.reason,
-        }, response.status_code)
-        else:
-            return favourite
+            return jsonify({
+                'error': favourite.get('error'),
+                'status': response.status_code,
+                'statusText': response.reason
+            }), response.status_code
+
+        return jsonify(favourite)
+
+    except requests.exceptions.ConnectionError as e:
+        return jsonify({
+            'error': "Can't Establish a connection to the server",
+            'status': 502,
+            'statusText': "Bad Gateway"
+        }), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 #boost or unboost a status
 # POST
 @status_bp.route("/api/v1/statuses/<id>/boost", methods=['POST'])
-@cross_origin()
+@cross_origin(origin="http://localhost:3001", supports_credentials=True)
 
 def boost(id):
     try:
+        access_token = request.cookies.get('access_token')
+        if not access_token:
+            return jsonify({
+                'error': 'Unauthorized',
+                'status': 401,
+                'statusText': 'No access token found'
+            }), 401
+
         headers = {
-            "Authorization": f"Bearer {request.json['token']}"
+            "Authorization": f"Bearer {access_token}"
         }
-        response = requests.post(f"https://{request.json['instance']}/api/v1/statuses/{id}/{request.json['prefix']}reblog", headers=headers)
-        boost = json.loads(response.text)
-    except requests.exceptions.ConnectionError as e:
-        return {
-                'error': "Can't Establish a connection to the server",
-                'status': 502,
-                'statusText': "Bad Gateway",
-            }
-    else:
+        response = requests.post(
+            f"https://{request.json['instance']}/api/v1/statuses/{id}/{request.json['prefix']}reblog",
+            headers=headers
+        )
+        boost = response.json()
+
         if response.status_code >= 400:
-            return ({
-            'error': boost['error'],
-            'status': response.status_code,
-            'statusText': response.reason,
-        }, response.status_code)
-        else:
-            return boost
+            return jsonify({
+                'error': boost.get('error'),
+                'status': response.status_code,
+                'statusText': response.reason
+            }), response.status_code
+
+        return jsonify(boost)
+
+    except requests.exceptions.ConnectionError as e:
+        return jsonify({
+            'error': "Can't Establish a connection to the server",
+            'status': 502,
+            'statusText': "Bad Gateway"
+        }), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 #fetch a status
 # GET
 @status_bp.route("/api/v1/statuses/<id>", methods=['GET'])
-@cross_origin()
+@cross_origin(origin="http://localhost:3001", supports_credentials=True)
 
 def get_status(id):
     try:
+        access_token = request.cookies.get('access_token')
+        if not access_token:
+            return jsonify({
+                'error': 'Unauthorized',
+                'status': 401,
+                'statusText': 'No access token found'
+            }), 401
+
         headers = {
-            "Authorization": f"Bearer {request.args['token']}"
+            "Authorization": f"Bearer {access_token}"
         }
-        res1 = requests.get(f"https://{request.args['instance']}/api/v1/statuses/{id}", headers=headers)
-        status = json.loads(res1.text)
-        res2 = requests.get(f"https://{request.args['instance']}/api/v1/statuses/{id}/context", headers=headers)
-        replies = json.loads(res2.text)
+        status_response = requests.get(
+            f"https://{request.args['instance']}/api/v1/statuses/{id}",
+            headers=headers
+        )
+        status = status_response.json()
+
+        if status_response.status_code >= 400:
+            return jsonify({
+                'error': status.get('error'),
+                'status': status_response.status_code,
+                'statusText': status_response.reason
+            }), status_response.status_code
+
+        context_response = requests.get(
+            f"https://{request.args['instance']}/api/v1/statuses/{id}/context",
+            headers=headers
+        )
+        replies = context_response.json()
+
+        if context_response.status_code >= 400:
+            return jsonify({
+                'error': replies.get('error'),
+                'status': context_response.status_code,
+                'statusText': context_response.reason
+            }), context_response.status_code
+
+        return jsonify({
+            'status': status,
+            'replies': replies['descendants']
+        })
+
     except requests.exceptions.ConnectionError as e:
-        return {
-                'error': "Can't Establish a connection to the server",
-                'status': 502,
-                'statusText': "Bad Gateway",
-            }
-    else:
-        if res1.status_code >= 400:
-            return ({
-            'error': status['error'],
-            'status': res1.status_code,
-            'statusText': res1.reason,
-        }, res1.status_code)
-        else:
-            data = {
-                'status': status,
-                'replies': replies['descendants']
-            }
-            return data
+        return jsonify({
+            'error': "Can't Establish a connection to the server",
+            'status': 502,
+            'statusText': "Bad Gateway"
+        }), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

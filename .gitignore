@@ -163,4 +163,5 @@ cython_debug/
 
 /sentiment
 /positive_recommender/sentimentAnalyzerFolder
+sentimentAnalyzerFolder
 graphLLAMA.py
